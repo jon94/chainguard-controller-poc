@@ -25,12 +25,17 @@ jobs:
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.10.0
+        with:
+          cosign-release: 'v2.6.0'
+      # (Optional but recommended on hosted runners too) reset TUF cache and initialize
+      - name: Prepare Sigstore (reset + bootstrap TUF)
         run: |
-          # Download and install cosign directly
-          curl -O -L "https://github.com/sigstore/cosign/releases/download/v2.1.1/cosign-linux-amd64"
-          sudo mv cosign-linux-amd64 /usr/local/bin/cosign
-          sudo chmod +x /usr/local/bin/cosign
-          cosign version
+          rm -rf ~/.sigstore
+          cosign initialize          
+            
+      - name: Verify Cosign Installation
+        run: cosign version
 
       - name: Build and Push Demo App Docker Image
         uses: mr-smithers-excellent/docker-build-push@v6
@@ -66,18 +71,21 @@ jobs:
 
       - name: Generate SLSA Provenance Attestation
         env:
-          COSIGN_EXPERIMENTAL: 1
-          SIGSTORE_NO_CACHE: 1
+          # COSIGN_EXPERIMENTAL is no longer needed for keyless in v2.x; omit it.
+          # Avoid disabling the cache; let TUF work normally.
+          # COSIGN_EXPERIMENTAL: 1
+          # SIGSTORE_NO_CACHE: 1
+          IMAGE_REF: jonlimpw/cg-demo@${{ steps.demo_digest.outputs.digest }}
         run: |
           echo "📜 Generating SLSA Level 3 Provenance..."
-          
-          # Install slsa-verifier (official SLSA tool)
+
+          # Install slsa-verifier (optional for a second check)
           curl -Lo slsa-verifier https://github.com/slsa-framework/slsa-verifier/releases/download/v2.4.1/slsa-verifier-linux-amd64
           chmod +x slsa-verifier
           sudo mv slsa-verifier /usr/local/bin/
-          
-          # Create SLSA provenance attestation
-          cat > slsa-provenance.json << EOF
+
+          # Create SLSA provenance attestation (predicate v0.2 as you had)
+          cat > slsa-provenance.json << 'EOF'
           {
             "_type": "https://in-toto.io/Statement/v0.1",
             "predicateType": "https://slsa.dev/provenance/v0.2",
@@ -85,7 +93,7 @@ jobs:
               {
                 "name": "jonlimpw/cg-demo",
                 "digest": {
-                  "sha256": "$(echo '${{ steps.demo_digest.outputs.digest }}' | cut -d: -f2)"
+                  "sha256": "${{ steps.demo_digest.outputs.digest }}".split(":")[1]
                 }
               }
             ],
@@ -97,9 +105,7 @@ jobs:
               "invocation": {
                 "configSource": {
                   "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
-                  "digest": {
-                    "sha1": "${{ github.sha }}"
-                  },
+                  "digest": { "sha1": "${{ github.sha }}" },
                   "entryPoint": ".github/workflows/docker-ci.yml"
                 }
               },
@@ -107,32 +113,44 @@ jobs:
                 "buildInvocationId": "${{ github.run_id }}-${{ github.run_attempt }}",
                 "buildStartedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
                 "buildFinishedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-                "completeness": {
-                  "parameters": true,
-                  "environment": false,
-                  "materials": false
-                },
+                "completeness": { "parameters": true, "environment": false, "materials": false },
                 "reproducible": false
               },
               "materials": [
                 {
                   "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
-                  "digest": {
-                    "sha1": "${{ github.sha }}"
-                  }
+                  "digest": { "sha1": "${{ github.sha }}" }
                 }
               ]
             }
           }
           EOF
-          
+
           echo "✅ SLSA Level 3 provenance generated!"
-          
-          # Attach SLSA attestation to demo app image
+
           echo "📤 Attaching SLSA attestation to demo app image..."
-          cosign attest --yes --predicate slsa-provenance.json --type slsaprovenance jonlimpw/cg-demo@${{ steps.demo_digest.outputs.digest }}
-          
+          # Keep Rekor verification ON (no --insecure-ignore-tlog)
+          cosign attest --yes \
+            --predicate slsa-provenance.json \
+            --type slsaprovenance \
+            "$IMAGE_REF"
+
           echo "✅ Demo app SLSA attestation attached to registry!"
+
+          echo ""
+          echo "🔍 Verifying Demo App Attestation:"
+          # Verify with certificate identity + issuer. No insecure flag.
+          if cosign verify-attestation --type slsaprovenance \
+              --certificate-identity-regexp "https://github.com/${{ github.repository }}/.+" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              "$IMAGE_REF" >/dev/null 2>&1; then
+            echo "   ✅ Demo app attestation verified successfully!"
+            echo "   ✅ SLSA Level 3 compliance achieved!"
+          else
+            echo "   ⚠️  Demo app attestation verification failed"
+          fi
+
+          echo ""
           echo "📋 Attestation covers:"
           echo "   • Build environment: GitHub Actions"
           echo "   • Source repository: ${{ github.repository }}"

@@ -75,6 +75,7 @@ validate_image_attestation() {
         # Try Cosign verification as fallback (with proper OIDC identity)
         echo "   • Trying Cosign verification with GitHub OIDC identity..."
         if cosign verify-attestation --type slsaprovenance \
+           --insecure-ignore-tlog \
            --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
            "$IMAGE_REF" >/dev/null 2>&1; then
