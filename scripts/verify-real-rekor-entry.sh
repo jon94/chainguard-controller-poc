@@ -5,7 +5,7 @@ echo "==============================="
 echo ""
 
 # The actual Rekor log index from our GitHub Actions attestation
-LOG_INDEX="566466542"
+LOG_INDEX="566518207"
 IMAGE_DIGEST="sha256:d1d6c7b78d59139833977f330416b960113f8a053b5cc5e5fddf6c8eef2c7778"
 
 echo "🎯 Verifying Real Attestation in Rekor Transparency Log"
@@ -14,11 +14,11 @@ echo "Image Digest: $IMAGE_DIGEST"
 echo ""
 
 echo "📋 Step 1: Query Rekor Log Entry"
-echo "Command: curl -s https://rekor.sigstore.dev/api/v1/log/entries/$LOG_INDEX"
+echo "Command: curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=$LOG_INDEX"
 echo ""
 
 # Query the Rekor API directly
-REKOR_ENTRY=$(curl -s "https://rekor.sigstore.dev/api/v1/log/entries/$LOG_INDEX" 2>/dev/null)
+REKOR_ENTRY=$(curl -s "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=$LOG_INDEX" 2>/dev/null)
 
 if [ $? -eq 0 ] && [ -n "$REKOR_ENTRY" ]; then
     echo "✅ Successfully retrieved Rekor log entry!"

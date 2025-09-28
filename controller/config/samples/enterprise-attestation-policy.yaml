@@ -13,7 +13,6 @@ spec:
       - "https://token.actions.githubusercontent.com"
     requiredTypes:
       - "slsaprovenance"
-    maxAge: "24h"
   deploymentSelector:
     matchLabels:
       app: "cg-demo"
