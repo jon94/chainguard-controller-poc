@@ -25,7 +25,7 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.1.1
         with:
-          cosign-release: 'v2.1.1'
+          cosign-release: 'v2.2.4'
 
       - name: Build and Push Demo App Docker Image
         uses: mr-smithers-excellent/docker-build-push@v6
@@ -64,7 +64,7 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
         run: |
           echo "🔐 Signing demo app image with Cosign..."
-          cosign sign --yes --insecure-ignore-tlog jonlimpw/cg-demo@${{ steps.demo_digest.outputs.digest }}
+          cosign sign --yes jonlimpw/cg-demo@${{ steps.demo_digest.outputs.digest }}
           echo "✅ Demo app image signed successfully!"
 
   build_test_push_controller:
@@ -96,7 +96,7 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.1.1
         with:
-          cosign-release: 'v2.1.1'
+          cosign-release: 'v2.2.4'
 
       - name: Build and Push Controller Docker Image
         uses: mr-smithers-excellent/docker-build-push@v6
@@ -135,7 +135,7 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
         run: |
           echo "🔐 Signing controller image with Cosign..."
-          cosign sign --yes --insecure-ignore-tlog jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }}
+          cosign sign --yes jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }}
           echo "✅ Controller image signed successfully!"
 
       - name: Verify Both Signatures
@@ -144,7 +144,7 @@ jobs:
         run: |
           echo "🔍 Verifying both image signatures..."
           echo "Verifying controller image..."
-          cosign verify --insecure-ignore-tlog jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }}
+          cosign verify jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }}
           echo "✅ Controller signature verified!"
           echo ""
           echo "🎯 Both images are now signed and verified!"
