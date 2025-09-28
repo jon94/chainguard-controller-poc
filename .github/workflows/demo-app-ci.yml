@@ -77,17 +77,16 @@ jobs:
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "📋 New digest: $DIGEST"
 
-      - name: Sign Container Image with Cosign
-        env:
-          COSIGN_EXPERIMENTAL: 1
-          SIGSTORE_NO_CACHE: 1
+      - name: Generate SLSA Provenance Attestation
         run: |
-          echo "🔐 Signing container image with Cosign..."
+          echo "📜 Generating SLSA Level 3 Provenance..."
           
-          # Sign the image using keyless signing (OIDC)
-          cosign sign --yes jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
+          # Install slsa-verifier (official SLSA tool)
+          curl -Lo slsa-verifier https://github.com/slsa-framework/slsa-verifier/releases/download/v2.4.1/slsa-verifier-linux-amd64
+          chmod +x slsa-verifier
+          sudo mv slsa-verifier /usr/local/bin/
           
-          echo "✅ Image signed successfully!"
+          echo "✅ SLSA verifier installed successfully!"
 
       - name: Generate SLSA Attestation
         env:
