@@ -1,0 +1,15 @@
+apiVersion: security.chainguard.dev/v1
+kind: ImagePolicy
+metadata:
+  name: jonlimpw-demo-policy
+  namespace: default
+spec:
+  repository: "jonlimpw/demo-app"
+  checkIntervalSeconds: 10  # Fast check interval for responsive demo
+  enforceLatestDigest: true
+  namespaceSelector:
+    matchLabels:
+      monitored: "true"
+  deploymentSelector:
+    matchLabels:
+      app: "demo-app"
