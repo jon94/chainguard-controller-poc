@@ -84,45 +84,41 @@ jobs:
           chmod +x slsa-verifier
           sudo mv slsa-verifier /usr/local/bin/
 
-          # Create SLSA provenance attestation (predicate v0.2 as you had)
-          cat > slsa-provenance.json << 'EOF'
+           # Create SLSA provenance predicate (just the predicate part for cosign attest)
+           cat > slsa-provenance.json << EOF
           {
-            "_type": "https://in-toto.io/Statement/v0.1",
-            "predicateType": "https://slsa.dev/provenance/v0.2",
-            "subject": [
-              {
-                  "name": "jonlimpw/cg-demo",
-                  "digest": {
-                    "sha256": "$(echo '${{ steps.demo_digest.outputs.digest }}' | cut -d: -f2)"
-                  }
+            "builder": {
+              "id": "https://github.com/actions/runner/github-hosted"
+            },
+            "buildType": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v1.4.0",
+            "invocation": {
+              "configSource": {
+                "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
+                "digest": {
+                  "sha1": "${{ github.sha }}"
+                },
+                "entryPoint": ".github/workflows/docker-ci.yml"
               }
-            ],
-            "predicate": {
-              "builder": {
-                "id": "https://github.com/actions/runner/github-hosted"
+            },
+            "metadata": {
+              "buildInvocationId": "${{ github.run_id }}-${{ github.run_attempt }}",
+              "buildStartedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "buildFinishedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "completeness": {
+                "parameters": true,
+                "environment": false,
+                "materials": false
               },
-              "buildType": "https://github.com/actions/runner",
-              "invocation": {
-                "configSource": {
-                  "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
-                  "digest": { "sha1": "${{ github.sha }}" },
-                  "entryPoint": ".github/workflows/docker-ci.yml"
+              "reproducible": false
+            },
+            "materials": [
+              {
+                "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
+                "digest": {
+                  "sha1": "${{ github.sha }}"
                 }
-              },
-              "metadata": {
-                "buildInvocationId": "${{ github.run_id }}-${{ github.run_attempt }}",
-                "buildStartedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-                "buildFinishedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-                "completeness": { "parameters": true, "environment": false, "materials": false },
-                "reproducible": false
-              },
-              "materials": [
-                {
-                  "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
-                  "digest": { "sha1": "${{ github.sha }}" }
-                }
-              ]
-            }
+              }
+            ]
           }
           EOF
 
@@ -133,7 +129,7 @@ jobs:
           cosign attest --yes \
             --predicate slsa-provenance.json \
             --type slsaprovenance \
-            "$IMAGE_REF"
+           jonlimpw/cg-demo@${{ steps.demo_digest.outputs.digest }}
 
           echo "✅ Demo app SLSA attestation attached to registry!"
 
