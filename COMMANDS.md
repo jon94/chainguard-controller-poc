@@ -101,13 +101,15 @@ make uninstall
 
 ### Build Demo Application
 ```bash
-# Build demo app Docker image (manual or via GitHub Actions)
+# Build demo app Docker image with SHA tagging (manual or via GitHub Actions)
 cd demo-app
-docker build -t jonlimpw/cg-demo:v1.0.0 -t jonlimpw/cg-demo:latest .
+SHORT_SHA=$(git rev-parse --short=7 HEAD)
+docker build -t jonlimpw/cg-demo:latest -t jonlimpw/cg-demo:$SHORT_SHA -t jonlimpw/cg-demo:v1.0.0-$SHORT_SHA .
 
 # Push to DockerHub
-docker push jonlimpw/cg-demo:v1.0.0
 docker push jonlimpw/cg-demo:latest
+docker push jonlimpw/cg-demo:$SHORT_SHA
+docker push jonlimpw/cg-demo:v1.0.0-$SHORT_SHA
 
 # Get image digest for compliance testing
 docker inspect --format='{{index .RepoDigests 0}}' jonlimpw/cg-demo:latest
@@ -356,8 +358,8 @@ done
 # 1. Deploy everything
 ./scripts/deploy-controller.sh
 
-# Build demo app (manual or GitHub Actions)
-cd demo-app && docker build -t jonlimpw/cg-demo:latest . && docker push jonlimpw/cg-demo:latest
+# Build demo app with SHA tagging (manual or GitHub Actions)
+cd demo-app && SHORT_SHA=$(git rev-parse --short=7 HEAD) && docker build -t jonlimpw/cg-demo:latest -t jonlimpw/cg-demo:$SHORT_SHA . && docker push jonlimpw/cg-demo:latest && docker push jonlimpw/cg-demo:$SHORT_SHA
 
 # 2. Run demo
 ./scripts/demo-flow.sh

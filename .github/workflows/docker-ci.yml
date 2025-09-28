@@ -18,6 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get Short SHA
+        id: sha
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build and Push Demo App Docker Image
         uses: mr-smithers-excellent/docker-build-push@v6
         with:
@@ -25,7 +29,7 @@ jobs:
           registry: docker.io
           dockerfile: ./demo-app/Dockerfile
           directory: ./demo-app
-          tags: latest,v1.0.0
+          tags: latest,${{ steps.sha.outputs.short_sha }},v1.0.0-${{ steps.sha.outputs.short_sha }}
           buildArgs: "DD_GIT_REPOSITORY_URL=github.com/jon94/chainguard-controller-poc,DD_GIT_COMMIT_SHA=$(git rev-parse HEAD)"
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -52,6 +56,10 @@ jobs:
           make test
           make vet
 
+      - name: Get Short SHA
+        id: sha
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Build and Push Controller Docker Image
         uses: mr-smithers-excellent/docker-build-push@v6
         with:
@@ -59,7 +67,7 @@ jobs:
           registry: docker.io
           dockerfile: ./controller/Dockerfile
           directory: ./controller
-          tags: latest,v1.0.0
+          tags: latest,${{ steps.sha.outputs.short_sha }},v1.0.0-${{ steps.sha.outputs.short_sha }}
           buildArgs: "DD_GIT_REPOSITORY_URL=github.com/jon94/chainguard-controller-poc,DD_GIT_COMMIT_SHA=$(git rev-parse HEAD)"
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}

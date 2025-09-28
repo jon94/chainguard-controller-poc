@@ -80,11 +80,13 @@ gh workflow run demo-app-ci.yml
 
 #### Option B: Manual Build
 ```bash
-# Build demo app manually
+# Build demo app manually with SHA tagging
 cd demo-app
-docker build -t jonlimpw/cg-demo:v1.0.0 -t jonlimpw/cg-demo:latest .
-docker push jonlimpw/cg-demo:v1.0.0
+SHORT_SHA=$(git rev-parse --short=7 HEAD)
+docker build -t jonlimpw/cg-demo:latest -t jonlimpw/cg-demo:$SHORT_SHA -t jonlimpw/cg-demo:v1.0.0-$SHORT_SHA .
 docker push jonlimpw/cg-demo:latest
+docker push jonlimpw/cg-demo:$SHORT_SHA
+docker push jonlimpw/cg-demo:v1.0.0-$SHORT_SHA
 ```
 
 ### 3. Run the Demo

@@ -21,12 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate Version Tag
+      - name: Generate Version Tags
         id: version
         run: |
+          # Get short SHA for unique identification
+          SHORT_SHA=$(git rev-parse --short=7 HEAD)
           # Create version from timestamp for demo purposes
-          VERSION="v$(date +%Y%m%d-%H%M%S)"
+          TIMESTAMP="v$(date +%Y%m%d-%H%M%S)"
+          VERSION="$TIMESTAMP-$SHORT_SHA"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
           echo "Generated version: $VERSION"
 
       - name: Build and Push Demo App Docker Image
@@ -36,7 +41,7 @@ jobs:
           registry: docker.io
           dockerfile: ./demo-app/Dockerfile
           directory: ./demo-app
-          tags: latest,${{ steps.version.outputs.version }}
+          tags: latest,${{ steps.version.outputs.version }},${{ steps.version.outputs.short_sha }},${{ steps.version.outputs.timestamp }}
           buildArgs: "DD_GIT_REPOSITORY_URL=github.com/jon94/chainguard-controller-poc,DD_GIT_COMMIT_SHA=$(git rev-parse HEAD)"
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -69,7 +74,11 @@ jobs:
           echo "🎯 NEW IMAGE PUSHED TO DOCKERHUB!"
           echo "=================================="
           echo ""
-          echo "📦 Image: jonlimpw/cg-demo:${{ steps.version.outputs.version }}"
+          echo "📦 Images Built:"
+          echo "   • jonlimpw/cg-demo:latest"
+          echo "   • jonlimpw/cg-demo:${{ steps.version.outputs.version }}"
+          echo "   • jonlimpw/cg-demo:${{ steps.version.outputs.short_sha }}"
+          echo "   • jonlimpw/cg-demo:${{ steps.version.outputs.timestamp }}"
           echo "📋 Latest Digest: ${{ steps.digest.outputs.digest }}"
           echo ""
           echo "🤖 CHAINGUARD CONTROLLER WILL:"
