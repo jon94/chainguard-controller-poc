@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-remediated-app
+  namespace: demo
+  labels:
+    app: cg-demo
+    automation: "true"  # Enable auto-remediation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cg-demo
+  template:
+    metadata:
+      labels:
+        app: cg-demo
+    spec:
+      containers:
+      - name: cg-demo
+        image: jonlimpw/cg-demo:latest  # This will be auto-updated to digest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manual-app
+  namespace: demo
+  labels:
+    app: cg-demo
+    # No automation label - will require manual remediation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cg-demo
+  template:
+    metadata:
+      labels:
+        app: cg-demo
+    spec:
+      containers:
+      - name: cg-demo
+        image: jonlimpw/cg-demo:latest  # This will stay non-compliant
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
