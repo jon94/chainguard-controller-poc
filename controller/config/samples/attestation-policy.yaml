@@ -1,7 +1,7 @@
 apiVersion: security.chainguard.dev/v1
 kind: ImagePolicy
 metadata:
-  name: enterprise-attestation-policy
+  name: attestation-policy
   namespace: demo
 spec:
   repository: "jonlimpw/cg-demo"
@@ -40,6 +40,7 @@ spec:
     metadata:
       labels:
         app: cg-demo
+        admission.datadoghq.com/enabled: "false"
     spec:
       containers:
       - name: demo-app
@@ -50,7 +51,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cg-demo-compliant
+  name: cg-demo-non-compliant
   namespace: demo
   labels:
     app: cg-demo
@@ -63,6 +64,7 @@ spec:
     metadata:
       labels:
         app: cg-demo
+        admission.datadoghq.com/enabled: "false"
     spec:
       containers:
       - name: demo-app
