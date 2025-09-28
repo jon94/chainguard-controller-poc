@@ -44,6 +44,17 @@ This MVP demonstrates a custom Kubernetes controller that:
 - Go 1.21+ (installed automatically)
 - Kubebuilder (installed automatically)
 
+### GitHub Actions Setup (Optional but Recommended)
+
+1. **Add DockerHub Secrets** to your GitHub repository:
+   - Go to: `Settings` → `Secrets and variables` → `Actions`
+   - Add `DOCKER_USERNAME`: `jonlimpw`
+   - Add `DOCKER_PASSWORD`: Your DockerHub access token
+
+2. **Automated Workflows Available**:
+   - `docker-ci.yml`: Builds both demo app and controller
+   - `demo-app-ci.yml`: Focused on demo app with compliance impact reporting
+
 ### 1. Deploy the Controller
 
 ```bash
@@ -57,12 +68,23 @@ cd chainguard-controller-poc
 
 ### 2. Build and Push Demo Application
 
+#### Option A: GitHub Actions (Recommended)
 ```bash
-# Build demo app manually (or use GitHub Actions for CI/CD)
+# Set up DockerHub secrets in GitHub repository settings
+# Then push changes to trigger automated builds
+git add . && git commit -m "Update demo app" && git push
+
+# Or manually trigger the demo app workflow
+gh workflow run demo-app-ci.yml
+```
+
+#### Option B: Manual Build
+```bash
+# Build demo app manually
 cd demo-app
-docker build -t jonlimpw/demo-app:v1.0.0 -t jonlimpw/demo-app:latest .
-docker push jonlimpw/demo-app:v1.0.0
-docker push jonlimpw/demo-app:latest
+docker build -t jonlimpw/cg-demo:v1.0.0 -t jonlimpw/cg-demo:latest .
+docker push jonlimpw/cg-demo:v1.0.0
+docker push jonlimpw/cg-demo:latest
 ```
 
 ### 3. Run the Demo
@@ -83,7 +105,7 @@ kind: ImagePolicy
 metadata:
   name: jonlimpw-demo-policy
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   checkIntervalSeconds: 10
   enforceLatestDigest: true
 ```
@@ -93,14 +115,14 @@ spec:
 spec:
   containers:
   - name: demo-app
-    image: jonlimpw/demo-app:latest  # ❌ Tag-based (non-compliant)
+    image: jonlimpw/cg-demo:latest  # ❌ Tag-based (non-compliant)
 ```
 
 ### Step 3: Compliance Detection
 ```bash
 $ kubectl get imagepolicy
 NAME                   REPOSITORY         COMPLIANCE     TOTAL   COMPLIANT
-jonlimpw-demo-policy   jonlimpw/demo-app  NonCompliant   2       0
+jonlimpw-demo-policy   jonlimpw/cg-demo   NonCompliant   2       0
 ```
 
 ### Step 4: Remediation
@@ -108,7 +130,7 @@ jonlimpw-demo-policy   jonlimpw/demo-app  NonCompliant   2       0
 spec:
   containers:
   - name: demo-app
-    image: jonlimpw/demo-app@sha256:abc123...  # ✅ Digest-based (compliant)
+    image: jonlimpw/cg-demo@sha256:abc123...  # ✅ Digest-based (compliant)
 ```
 
 ## 🔧 Configuration
@@ -128,7 +150,7 @@ spec:
 #### Monitor Specific Namespace
 ```yaml
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   namespaceSelector:
     matchLabels:
       environment: "production"
@@ -137,7 +159,7 @@ spec:
 #### Monitor Specific Applications
 ```yaml
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   deploymentSelector:
     matchLabels:
       app: "critical-service"
@@ -178,7 +200,7 @@ This MVP provides a foundation for advanced supply chain security features:
 ### Phase 2: Image Signing Verification
 ```yaml
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   signingPolicy:
     required: true
     keyRef: "cosign-public-key"
@@ -188,7 +210,7 @@ spec:
 ### Phase 3: Attestation Verification
 ```yaml
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   attestationPolicy:
     slsaLevel: 3
     requiredPredicates:
@@ -199,7 +221,7 @@ spec:
 ### Phase 4: Admission Control
 ```yaml
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   enforcement:
     mode: "block"  # Prevent non-compliant deployments
     exceptions:

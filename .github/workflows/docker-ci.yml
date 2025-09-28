@@ -1,0 +1,92 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build_test_push_demo_app:
+    name: build_test_push_demo_app
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_REPOSITORY: jonlimpw # name of Docker Hub ID
+      IMAGE_NAME: cg-demo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and Push Demo App Docker Image
+        uses: mr-smithers-excellent/docker-build-push@v6
+        with:
+          image: ${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}
+          registry: docker.io
+          dockerfile: ./demo-app/Dockerfile
+          directory: ./demo-app
+          tags: latest,v1.0.0
+          buildArgs: "DD_GIT_REPOSITORY_URL=github.com/jon94/chainguard-controller-poc,DD_GIT_COMMIT_SHA=$(git rev-parse HEAD)"
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+  build_test_push_controller:
+    name: build_test_push_controller
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_REPOSITORY: jonlimpw # name of Docker Hub ID
+      IMAGE_NAME: secure-controller
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Run Controller Tests
+        working-directory: ./controller
+        run: |
+          make test
+          make vet
+
+      - name: Build and Push Controller Docker Image
+        uses: mr-smithers-excellent/docker-build-push@v6
+        with:
+          image: ${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}
+          registry: docker.io
+          dockerfile: ./controller/Dockerfile
+          directory: ./controller
+          tags: latest,v1.0.0
+          buildArgs: "DD_GIT_REPOSITORY_URL=github.com/jon94/chainguard-controller-poc,DD_GIT_COMMIT_SHA=$(git rev-parse HEAD)"
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+  update_demo_deployment:
+    name: update_demo_deployment
+    needs: [build_test_push_demo_app]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Latest Image Digest
+        id: digest
+        run: |
+          # Wait a moment for DockerHub to process the push
+          sleep 30
+          
+          # Get the digest of the newly pushed image
+          DIGEST=$(docker manifest inspect jonlimpw/cg-demo:latest | jq -r '.config.digest')
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Latest cg-demo digest: $DIGEST"
+      
+      - name: Trigger Controller Detection
+        run: |
+          echo "🎯 New image pushed! The Chainguard Controller will detect this within 10 seconds."
+          echo "📋 Image: jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}"
+          echo "⚡ Demo deployments using tags will be flagged as non-compliant"
+          echo "✅ Deployments using this digest will be compliant"

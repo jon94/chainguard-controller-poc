@@ -1,0 +1,87 @@
+name: CG Demo App CI - Chainguard Controller
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["demo-app/**"]
+  pull_request:
+    branches: ["main"]
+    paths: ["demo-app/**"]
+  workflow_dispatch: # Allow manual trigger for demo purposes
+
+jobs:
+  build_test_push_demo_app:
+    name: build_test_push_demo_app
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_REPOSITORY: jonlimpw # name of Docker Hub ID
+      IMAGE_NAME: cg-demo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Version Tag
+        id: version
+        run: |
+          # Create version from timestamp for demo purposes
+          VERSION="v$(date +%Y%m%d-%H%M%S)"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+      - name: Build and Push Demo App Docker Image
+        uses: mr-smithers-excellent/docker-build-push@v6
+        with:
+          image: ${{ env.DOCKER_REPOSITORY }}/${{ env.IMAGE_NAME }}
+          registry: docker.io
+          dockerfile: ./demo-app/Dockerfile
+          directory: ./demo-app
+          tags: latest,${{ steps.version.outputs.version }}
+          buildArgs: "DD_GIT_REPOSITORY_URL=github.com/jon94/chainguard-controller-poc,DD_GIT_COMMIT_SHA=$(git rev-parse HEAD)"
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Wait for DockerHub Processing
+        run: |
+          echo "⏳ Waiting for DockerHub to process the new image..."
+          sleep 45
+
+      - name: Get New Image Digest
+        id: digest
+        run: |
+          # Get the digest of the newly pushed image
+          echo "🔍 Fetching digest for jonlimpw/cg-demo:latest"
+          
+          # Use Docker Hub API to get the digest
+          TOKEN=$(curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:jonlimpw/cg-demo:pull" | jq -r .token)
+          DIGEST=$(curl -s -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/jonlimpw/cg-demo/manifests/latest" | jq -r '.config.digest // empty')
+          
+          if [ -z "$DIGEST" ]; then
+            # Fallback: get digest from response headers
+            DIGEST=$(curl -s -I -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/jonlimpw/cg-demo/manifests/latest" | grep -i docker-content-digest | cut -d' ' -f2 | tr -d '\r')
+          fi
+          
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "📋 New digest: $DIGEST"
+
+      - name: Chainguard Controller Impact
+        run: |
+          echo "🎯 NEW IMAGE PUSHED TO DOCKERHUB!"
+          echo "=================================="
+          echo ""
+          echo "📦 Image: jonlimpw/cg-demo:${{ steps.version.outputs.version }}"
+          echo "📋 Latest Digest: ${{ steps.digest.outputs.digest }}"
+          echo ""
+          echo "🤖 CHAINGUARD CONTROLLER WILL:"
+          echo "  ⚡ Detect new digest within 10 seconds"
+          echo "  🚨 Flag existing tag-based deployments as non-compliant"
+          echo "  ✅ Mark digest-based deployments as compliant"
+          echo "  📊 Update ImagePolicy status in real-time"
+          echo ""
+          echo "🎭 DEMO IMPACT:"
+          echo "  • Perfect for showing real-time compliance monitoring"
+          echo "  • Demonstrates supply chain security automation"
+          echo "  • Shows enterprise-grade image governance"
+          echo ""
+          echo "🔧 TO UPDATE DEPLOYMENT FOR COMPLIANCE:"
+          echo "  kubectl set image deployment/cg-demo cg-demo=jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}"

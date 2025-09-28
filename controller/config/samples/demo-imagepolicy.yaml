@@ -4,7 +4,7 @@ metadata:
   name: jonlimpw-demo-policy
   namespace: default
 spec:
-  repository: "jonlimpw/demo-app"
+  repository: "jonlimpw/cg-demo"
   checkIntervalSeconds: 10  # Fast check interval for responsive demo
   enforceLatestDigest: true
   namespaceSelector:
@@ -12,4 +12,4 @@ spec:
       monitored: "true"
   deploymentSelector:
     matchLabels:
-      app: "demo-app"
+      app: "cg-demo"

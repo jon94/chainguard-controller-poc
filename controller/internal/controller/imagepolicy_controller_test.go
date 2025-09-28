@@ -52,7 +52,7 @@ var _ = Describe("ImagePolicy Controller", func() {
 						Namespace: "default",
 					},
 					Spec: securityv1.ImagePolicySpec{
-						Repository: "jonlimpw/test-app",
+						Repository: "jonlimpw/cg-demo",
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())

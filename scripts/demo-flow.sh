@@ -45,7 +45,7 @@ demo_step "3" "Deploying a non-compliant application (using tag instead of diges
 kubectl apply -f "$(dirname "$0")/../controller/config/samples/demo-deployment.yaml"
 
 echo "📋 Deployments created:"
-kubectl get deployments -A -l app=demo-app
+kubectl get deployments -A -l app=cg-demo
 
 wait_for_input
 
@@ -73,7 +73,7 @@ wait_for_input
 demo_step "6" "Simulating image update (push new version to DockerHub)"
 echo "💡 In a real scenario, you would:"
 echo "   1. Build and push a new version via GitHub Actions or manually:"
-echo "      docker build -t jonlimpw/demo-app:v2.0.0 . && docker push jonlimpw/demo-app:v2.0.0"
+echo "      docker build -t jonlimpw/cg-demo:v2.0.0 . && docker push jonlimpw/cg-demo:v2.0.0"
 echo "   2. The controller would detect the new digest within 10 seconds"
 echo "   3. Existing deployments would be marked as non-compliant"
 echo "   4. Update deployments to use new digest for compliance"

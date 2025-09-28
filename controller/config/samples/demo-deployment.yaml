@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-app
+  name: cg-demo
   namespace: default
   labels:
-    app: demo-app
+    app: cg-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: demo-app
+      app: cg-demo
   template:
     metadata:
       labels:
-        app: demo-app
+        app: cg-demo
     spec:
       containers:
-      - name: demo-app
-        image: jonlimpw/demo-app:latest  # This will be flagged as non-compliant (using tag instead of digest)
+      - name: cg-demo
+        image: jonlimpw/cg-demo:latest  # This will be flagged as non-compliant (using tag instead of digest)
         ports:
         - containerPort: 8080
         resources:
@@ -41,19 +41,19 @@ metadata:
   name: compliant-app
   namespace: demo
   labels:
-    app: demo-app
+    app: cg-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: demo-app
+      app: cg-demo
   template:
     metadata:
       labels:
-        app: demo-app
+        app: cg-demo
     spec:
       containers:
-      - name: demo-app
-        image: jonlimpw/demo-app@sha256:placeholder-digest-will-be-updated  # This will be compliant when using actual digest
+      - name: cg-demo
+        image: jonlimpw/cg-demo@sha256:placeholder-digest-will-be-updated  # This will be compliant when using actual digest
         ports:
         - containerPort: 8080

@@ -103,14 +103,14 @@ make uninstall
 ```bash
 # Build demo app Docker image (manual or via GitHub Actions)
 cd demo-app
-docker build -t jonlimpw/demo-app:v1.0.0 -t jonlimpw/demo-app:latest .
+docker build -t jonlimpw/cg-demo:v1.0.0 -t jonlimpw/cg-demo:latest .
 
 # Push to DockerHub
-docker push jonlimpw/demo-app:v1.0.0
-docker push jonlimpw/demo-app:latest
+docker push jonlimpw/cg-demo:v1.0.0
+docker push jonlimpw/cg-demo:latest
 
 # Get image digest for compliance testing
-docker inspect --format='{{index .RepoDigests 0}}' jonlimpw/demo-app:latest
+docker inspect --format='{{index .RepoDigests 0}}' jonlimpw/cg-demo:latest
 ```
 
 ### Controller Image Management
@@ -247,9 +247,9 @@ git push -u origin main
 
 # Build and push demo application (manual or GitHub Actions)
 cd demo-app
-docker build -t jonlimpw/demo-app:v1.0.0 -t jonlimpw/demo-app:latest .
-docker push jonlimpw/demo-app:v1.0.0
-docker push jonlimpw/demo-app:latest
+docker build -t jonlimpw/cg-demo:v1.0.0 -t jonlimpw/cg-demo:latest .
+docker push jonlimpw/cg-demo:v1.0.0
+docker push jonlimpw/cg-demo:latest
 
 # Run interactive demo flow
 ./scripts/demo-flow.sh
@@ -259,9 +259,9 @@ docker push jonlimpw/demo-app:latest
 ```bash
 # Build specific version of demo app
 cd demo-app
-docker build -t jonlimpw/demo-app:v2.0.0 -t jonlimpw/demo-app:latest .
-docker push jonlimpw/demo-app:v2.0.0
-docker push jonlimpw/demo-app:latest
+docker build -t jonlimpw/cg-demo:v2.0.0 -t jonlimpw/cg-demo:latest .
+docker push jonlimpw/cg-demo:v2.0.0
+docker push jonlimpw/cg-demo:latest
 
 # Deploy controller with custom settings
 ./scripts/deploy-controller.sh
@@ -357,7 +357,7 @@ done
 ./scripts/deploy-controller.sh
 
 # Build demo app (manual or GitHub Actions)
-cd demo-app && docker build -t jonlimpw/demo-app:latest . && docker push jonlimpw/demo-app:latest
+cd demo-app && docker build -t jonlimpw/cg-demo:latest . && docker push jonlimpw/cg-demo:latest
 
 # 2. Run demo
 ./scripts/demo-flow.sh
