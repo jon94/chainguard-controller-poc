@@ -91,10 +91,10 @@ jobs:
             "predicateType": "https://slsa.dev/provenance/v0.2",
             "subject": [
               {
-                "name": "jonlimpw/cg-demo",
-                "digest": {
-                  "sha256": "${{ steps.demo_digest.outputs.digest }}".split(":")[1]
-                }
+                  "name": "jonlimpw/cg-demo",
+                  "digest": {
+                    "sha256": "$(echo '${{ steps.demo_digest.outputs.digest }}' | cut -d: -f2)"
+                  }
               }
             ],
             "predicate": {
