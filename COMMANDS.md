@@ -197,15 +197,10 @@ cosign verify-attestation --type slsaprovenance \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   jonlimpw/cg-demo@sha256:DIGEST
 
-# Verify controller attestation (with GitHub OIDC identity)
-cosign verify-attestation --type slsaprovenance \
-  --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
-  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  jonlimpw/secure-controller@sha256:DIGEST
-
-# Check registry artifact tree
+# Check registry artifact tree for demo app
 cosign tree jonlimpw/cg-demo:latest
-cosign tree jonlimpw/secure-controller:latest
+
+# Note: Controller doesn't need attestations - it monitors demo app attestations
 ```
 
 ### Alternative Verification Methods
@@ -225,8 +220,7 @@ slsa-verifier verify-image jonlimpw/cg-demo@sha256:DIGEST --source-uri github.co
 # Get demo app digest
 crane digest jonlimpw/cg-demo:latest
 
-# Get controller digest  
-crane digest jonlimpw/secure-controller:latest
+# Note: Only demo app needs attestations for monitoring
 
 # Alternative using Docker API
 curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:jonlimpw/cg-demo:pull" | jq -r '.token' | xargs -I {} curl -s -H "Authorization: Bearer {}" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/jonlimpw/cg-demo/manifests/latest" | jq -r '.config.digest'

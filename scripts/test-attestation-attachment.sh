@@ -11,11 +11,9 @@ echo ""
 
 # Configuration
 DEMO_APP_IMAGE="jonlimpw/cg-demo"
-CONTROLLER_IMAGE="jonlimpw/secure-controller"
 
-echo "🎯 Testing Images:"
-echo "   📦 Demo App: $DEMO_APP_IMAGE"
-echo "   🔧 Controller: $CONTROLLER_IMAGE"
+echo "🎯 Testing Image:"
+echo "   📦 Demo App: $DEMO_APP_IMAGE (monitored by Chainguard controller)"
 echo ""
 
 # Function to test attestation for an image
@@ -133,27 +131,26 @@ test_image_attestation() {
     echo ""
 }
 
-# Test both images
+# Test demo app image
 test_image_attestation "$DEMO_APP_IMAGE" "Demo App"
-test_image_attestation "$CONTROLLER_IMAGE" "Controller"
 
 echo "📊 SLSA Level 3 Compliance Summary"
 echo "================================="
 echo ""
 echo "✅ What We've Achieved:"
 echo "   • Hermetic builds in GitHub Actions"
-echo "   • SLSA provenance generation"
+echo "   • SLSA provenance generation for demo app"
 echo "   • Attestation attachment to registry"
 echo "   • Multiple verification methods"
 echo ""
 echo "🎯 For Chainguard Demo:"
-echo "   • Demonstrates enterprise-grade supply chain security"
-echo "   • Shows complete SLSA Level 3 compliance"
-echo "   • Provides multiple validation approaches"
-echo "   • Ready for production deployment"
+echo "   • Demo app has enterprise-grade supply chain security"
+echo "   • Shows complete SLSA Level 3 compliance for monitored apps"
+echo "   • Controller can verify attestation existence"
+echo "   • Ready for enterprise security monitoring"
 echo ""
 echo "🔧 Next Steps:"
-echo "   1. Run GitHub Actions to build with attestations"
+echo "   1. Run GitHub Actions to build demo app with attestations"
 echo "   2. Use this script to verify attachment"
-echo "   3. Configure controller to validate attestations"
-echo "   4. Demonstrate end-to-end security in interview"
+echo "   3. Deploy controller to monitor demo app"
+echo "   4. Demonstrate attestation validation in interview"
