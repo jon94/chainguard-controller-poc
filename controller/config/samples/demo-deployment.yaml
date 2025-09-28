@@ -5,6 +5,7 @@ metadata:
   namespace: demo
   labels:
     app: cg-demo
+    automation: "true"
 spec:
   replicas: 1
   selector:
@@ -14,7 +15,7 @@ spec:
     metadata:
       labels:
         app: cg-demo
-        admission.datadoghq.com/enabled: "false"         
+        admission.datadoghq.com/enabled: "false"
     spec:
       containers:
       - name: cg-demo
