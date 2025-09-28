@@ -5,7 +5,7 @@ metadata:
   namespace: demo
 spec:
   repository: "jonlimpw/cg-demo"
-  checkIntervalSeconds: 10  # Fast check interval for responsive demo
+  checkIntervalSeconds: 60  # Fast check interval for responsive demo
   enforceLatestDigest: true
   namespaceSelector:
     matchLabels:

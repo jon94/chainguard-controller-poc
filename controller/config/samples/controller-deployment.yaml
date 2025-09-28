@@ -68,7 +68,7 @@ spec:
       serviceAccountName: chainguard-controller
       containers:
       - name: manager
-        image: jonlimpw/secure-controller@sha256:927170acea4d19d1f79e5659b395737ac78493ff7188caa64509f3f66a455131
+        image: jonlimpw/secure-controller@sha256:0bff01f3970bc716d511066a56f35aaabc2656d3286fbba336735113c1a09537
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
