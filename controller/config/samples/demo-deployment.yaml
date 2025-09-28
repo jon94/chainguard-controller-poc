@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cg-demo
-  namespace: default
+  namespace: demo
   labels:
     app: cg-demo
 spec:
@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app: cg-demo
+        admission.datadoghq.com/enabled: "false"         
     spec:
       containers:
       - name: cg-demo
@@ -51,9 +52,10 @@ spec:
     metadata:
       labels:
         app: cg-demo
+        admission.datadoghq.com/enabled: "false"         
     spec:
       containers:
       - name: cg-demo
-        image: jonlimpw/cg-demo@sha256:placeholder-digest-will-be-updated  # This will be compliant when using actual digest
+        image: jonlimpw/cg-demo@sha256:c2fa8540df15fe8f14eca3d9821103622ceab542744ece39dad76b5ff1254136
         ports:
         - containerPort: 8080
