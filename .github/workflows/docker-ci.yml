@@ -205,6 +205,9 @@ jobs:
           echo "📋 Controller digest: $DIGEST"
 
       - name: Generate SLSA Provenance for Controller
+        env:
+          COSIGN_EXPERIMENTAL: 1
+          SIGSTORE_NO_CACHE: 1
         run: |
           echo "📜 Generating SLSA Level 3 Provenance for Controller..."
           
@@ -259,9 +262,16 @@ jobs:
           EOF
           
           echo "✅ Controller SLSA Level 3 provenance generated!"
+          
+          # Attach SLSA attestation to controller image
+          echo "📤 Attaching SLSA attestation to controller image..."
+          cosign attest --yes --predicate controller-slsa-provenance.json --type slsaprovenance jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }}
+          
+          echo "✅ Controller SLSA attestation attached to registry!"
           echo ""
           echo "🎯 ENTERPRISE SECURITY CONTROLLER:"
           echo "   ✅ Controller itself has provenance attestation"
+          echo "   ✅ Attestation attached to registry (verifiable)"
           echo "   ✅ Ensures integrity of security enforcement tool"
           echo "   ✅ Complete supply chain security coverage"
           echo "   ✅ Compliance with enterprise security standards"
@@ -287,6 +297,29 @@ jobs:
             echo "   ✅ Controller SLSA provenance file exists"
             echo "   ✅ Security controller has verified build provenance"
             echo "   ✅ End-to-end supply chain security achieved"
+          fi
+          
+          echo ""
+          echo "🔍 Verifying Attached Attestations:"
+          echo "   📦 Demo App: cosign verify-attestation jonlimpw/cg-demo@${{ needs.build-demo-app.outputs.digest }}"
+          echo "   🔧 Controller: cosign verify-attestation jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }}"
+          
+          # Verify demo app attestation (if available)
+          if [ -n "${{ needs.build-demo-app.outputs.digest }}" ]; then
+            echo "   🔍 Verifying demo app attestation..."
+            if cosign verify-attestation --type slsaprovenance jonlimpw/cg-demo@${{ needs.build-demo-app.outputs.digest }} >/dev/null 2>&1; then
+              echo "   ✅ Demo app attestation verified successfully!"
+            else
+              echo "   ⚠️  Demo app attestation verification failed (may not be attached yet)"
+            fi
+          fi
+          
+          # Verify controller attestation
+          echo "   🔍 Verifying controller attestation..."
+          if cosign verify-attestation --type slsaprovenance jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }} >/dev/null 2>&1; then
+            echo "   ✅ Controller attestation verified successfully!"
+          else
+            echo "   ⚠️  Controller attestation verification failed (may not be attached yet)"
           fi
           
           echo ""

@@ -181,6 +181,51 @@ kubectl describe deployment demo-app
 kubectl get pods -l app=demo-app
 ```
 
+## 🔐 SLSA Attestation Verification Commands
+
+### Verify Attached Attestations
+```bash
+# Test complete SLSA Level 3 workflow
+./scripts/test-attestation-attachment.sh
+
+# Validate SLSA attestations for both images
+./scripts/validate-slsa-attestations.sh
+
+# Verify demo app attestation
+cosign verify-attestation --type slsaprovenance jonlimpw/cg-demo@sha256:DIGEST
+
+# Verify controller attestation
+cosign verify-attestation --type slsaprovenance jonlimpw/secure-controller@sha256:DIGEST
+
+# Check registry artifact tree
+cosign tree jonlimpw/cg-demo:latest
+cosign tree jonlimpw/secure-controller:latest
+```
+
+### Alternative Verification Methods
+```bash
+# Using SLSA verifier
+slsa-verifier verify-image jonlimpw/cg-demo@sha256:DIGEST --source-uri github.com/jon94/chainguard-controller-poc
+
+# Using GitHub CLI (if available)
+./scripts/github-attestation-check.sh
+
+# Using Cosign with different options
+./scripts/validate-with-cosign.sh
+```
+
+### Get Image Digests for Verification
+```bash
+# Get demo app digest
+crane digest jonlimpw/cg-demo:latest
+
+# Get controller digest  
+crane digest jonlimpw/secure-controller:latest
+
+# Alternative using Docker API
+curl -s "https://auth.docker.io/token?service=registry.docker.io&scope=repository:jonlimpw/cg-demo:pull" | jq -r '.token' | xargs -I {} curl -s -H "Authorization: Bearer {}" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://registry-1.docker.io/v2/jonlimpw/cg-demo/manifests/latest" | jq -r '.config.digest'
+```
+
 ## 🧹 Cleanup Commands
 
 ### Remove Demo Resources
