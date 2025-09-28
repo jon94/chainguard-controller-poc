@@ -72,11 +72,15 @@ validate_image_attestation() {
         echo "⚠️  SLSA verification failed"
         echo "   • Checking if attestations are attached..."
         
-        # Try Cosign verification as fallback
-        if cosign verify-attestation --type slsaprovenance "$IMAGE_REF" >/dev/null 2>&1; then
+        # Try Cosign verification as fallback (with proper OIDC identity)
+        echo "   • Trying Cosign verification with GitHub OIDC identity..."
+        if cosign verify-attestation --type slsaprovenance \
+           --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
+           --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+           "$IMAGE_REF" >/dev/null 2>&1; then
             echo "   ✅ Cosign attestation verification successful!"
             echo "   • SLSA attestations are attached to registry"
-            echo "   • Use 'cosign verify-attestation' for verification"
+            echo "   • GitHub Actions OIDC identity verified"
         else
             echo "   ❌ No attestations found attached to image"
             echo "   • Attestations may still be propagating"
@@ -104,11 +108,15 @@ validate_image_attestation() {
         else
             echo "   ⚠️  No attestation artifacts found in cosign tree"
             
-            # Try direct attestation verification
+            # Try direct attestation verification with proper OIDC identity
             echo "   • Attempting direct attestation verification..."
-            if cosign verify-attestation --type slsaprovenance "$IMAGE_REF" >/dev/null 2>&1; then
+            if cosign verify-attestation --type slsaprovenance \
+               --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
+               --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+               "$IMAGE_REF" >/dev/null 2>&1; then
                 echo "   ✅ Direct attestation verification successful!"
                 echo "   • Attestations exist but may not show in tree view"
+                echo "   • GitHub Actions OIDC identity verified"
             else
                 echo "   ❌ No attestations found via direct verification"
             fi

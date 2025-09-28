@@ -191,11 +191,17 @@ kubectl get pods -l app=demo-app
 # Validate SLSA attestations for both images
 ./scripts/validate-slsa-attestations.sh
 
-# Verify demo app attestation
-cosign verify-attestation --type slsaprovenance jonlimpw/cg-demo@sha256:DIGEST
+# Verify demo app attestation (with GitHub OIDC identity)
+cosign verify-attestation --type slsaprovenance \
+  --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  jonlimpw/cg-demo@sha256:DIGEST
 
-# Verify controller attestation
-cosign verify-attestation --type slsaprovenance jonlimpw/secure-controller@sha256:DIGEST
+# Verify controller attestation (with GitHub OIDC identity)
+cosign verify-attestation --type slsaprovenance \
+  --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  jonlimpw/secure-controller@sha256:DIGEST
 
 # Check registry artifact tree
 cosign tree jonlimpw/cg-demo:latest

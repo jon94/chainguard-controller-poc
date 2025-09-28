@@ -146,8 +146,11 @@ jobs:
           # Verify the signature
           cosign verify jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
           
-          # Verify the attestation
-          cosign verify-attestation --type slsaprovenance jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
+          # Verify the attestation with GitHub OIDC identity
+          cosign verify-attestation --type slsaprovenance \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
           
           echo "✅ Verification successful!"
 

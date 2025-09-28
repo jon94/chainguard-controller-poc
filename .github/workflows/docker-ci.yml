@@ -307,7 +307,10 @@ jobs:
           # Verify demo app attestation (if available)
           if [ -n "${{ needs.build-demo-app.outputs.digest }}" ]; then
             echo "   🔍 Verifying demo app attestation..."
-            if cosign verify-attestation --type slsaprovenance jonlimpw/cg-demo@${{ needs.build-demo-app.outputs.digest }} >/dev/null 2>&1; then
+            if cosign verify-attestation --type slsaprovenance \
+               --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
+               --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+               jonlimpw/cg-demo@${{ needs.build-demo-app.outputs.digest }} >/dev/null 2>&1; then
               echo "   ✅ Demo app attestation verified successfully!"
             else
               echo "   ⚠️  Demo app attestation verification failed (may not be attached yet)"
@@ -316,7 +319,10 @@ jobs:
           
           # Verify controller attestation
           echo "   🔍 Verifying controller attestation..."
-          if cosign verify-attestation --type slsaprovenance jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }} >/dev/null 2>&1; then
+          if cosign verify-attestation --type slsaprovenance \
+             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
+             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+             jonlimpw/secure-controller@${{ steps.controller_digest.outputs.digest }} >/dev/null 2>&1; then
             echo "   ✅ Controller attestation verified successfully!"
           else
             echo "   ⚠️  Controller attestation verification failed (may not be attached yet)"

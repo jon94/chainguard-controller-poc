@@ -50,10 +50,13 @@ test_image_attestation() {
     
     # Test 1: Cosign verify-attestation
     echo "🔐 Test 1: Cosign Attestation Verification"
-    echo "   Command: cosign verify-attestation --type slsaprovenance $image_ref"
+    echo "   Command: cosign verify-attestation --type slsaprovenance --certificate-identity-regexp ... $image_ref"
     
     if command -v cosign >/dev/null 2>&1; then
-        if cosign verify-attestation --type slsaprovenance "$image_ref" >/dev/null 2>&1; then
+        if cosign verify-attestation --type slsaprovenance \
+           --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
+           --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+           "$image_ref" >/dev/null 2>&1; then
             echo "   ✅ SUCCESS: SLSA attestation verified!"
             echo "   • Attestation is attached to registry"
             echo "   • SLSA Level 3 compliance achieved"
@@ -61,7 +64,10 @@ test_image_attestation() {
             # Show attestation details
             echo ""
             echo "   📋 Attestation Details:"
-            cosign verify-attestation --type slsaprovenance "$image_ref" 2>/dev/null | jq -r '.payload' | base64 -d | jq '.predicate.builder.id, .predicate.buildType' 2>/dev/null || echo "   (Unable to parse attestation details)"
+            cosign verify-attestation --type slsaprovenance \
+               --certificate-identity-regexp "https://github.com/jon94/chainguard-controller-poc/.*" \
+               --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+               "$image_ref" 2>/dev/null | jq -r '.payload' | base64 -d | jq '.predicate.builder.id, .predicate.buildType' 2>/dev/null || echo "   (Unable to parse attestation details)"
         else
             echo "   ❌ FAILED: No SLSA attestation found"
             echo "   • Attestation may not be attached yet"
