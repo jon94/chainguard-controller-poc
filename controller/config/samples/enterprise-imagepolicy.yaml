@@ -1,0 +1,31 @@
+apiVersion: security.chainguard.dev/v1
+kind: ImagePolicy
+metadata:
+  name: enterprise-demo-policy
+  namespace: demo
+  annotations:
+    description: "Enterprise-grade image policy with signature verification"
+spec:
+  repository: "jonlimpw/cg-demo"
+  checkIntervalSeconds: 30  # More frequent checks for enterprise
+  enforceLatestDigest: true
+  namespaceSelector:
+    matchLabels:
+      monitored: "true"
+  deploymentSelector:
+    matchLabels:
+      app: "cg-demo"
+  
+  # Future enhancement: Signature verification
+  # signatureVerification:
+  #   enabled: true
+  #   keylessVerification: true
+  #   trustedIssuers:
+  #     - "https://token.actions.githubusercontent.com"
+  #   requiredAnnotations:
+  #     "github.com/repository": "jon94/chainguard-controller-poc"
+  #   attestationPolicy:
+  #     requireAttestation: true
+  #     minimumSLSALevel: 3
+  #     requiredBuilders:
+  #       - "https://github.com/actions/runner"

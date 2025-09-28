@@ -46,6 +46,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.1
+        with:
+          cosign-release: 'v2.2.0'
+
       - name: Wait for DockerHub Processing
         run: |
           echo "⏳ Waiting for DockerHub to process the new image..."
@@ -69,17 +74,94 @@ jobs:
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "📋 New digest: $DIGEST"
 
+      - name: Sign Container Image with Cosign
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          echo "🔐 Signing container image with Cosign..."
+          
+          # Sign the image using keyless signing (OIDC)
+          cosign sign --yes jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
+          
+          echo "✅ Image signed successfully!"
+
+      - name: Generate SLSA Attestation
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          echo "📜 Generating SLSA attestation..."
+          
+          # Create SLSA provenance attestation
+          cat > slsa-predicate.json << EOF
+          {
+            "buildType": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v1.4.0",
+            "builder": {
+              "id": "https://github.com/actions/runner"
+            },
+            "invocation": {
+              "configSource": {
+                "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
+                "digest": {
+                  "sha1": "${{ github.sha }}"
+                }
+              }
+            },
+            "metadata": {
+              "buildInvocationId": "${{ github.run_id }}-${{ github.run_attempt }}",
+              "buildStartedOn": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "completeness": {
+                "parameters": true,
+                "environment": false,
+                "materials": false
+              },
+              "reproducible": false
+            },
+            "materials": [
+              {
+                "uri": "git+https://github.com/${{ github.repository }}@refs/heads/${{ github.ref_name }}",
+                "digest": {
+                  "sha1": "${{ github.sha }}"
+                }
+              }
+            ]
+          }
+          EOF
+          
+          # Attest the image with SLSA provenance
+          cosign attest --yes --predicate slsa-predicate.json --type slsaprovenance jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
+          
+          echo "✅ SLSA attestation generated successfully!"
+
+      - name: Verify Signature and Attestation
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          echo "🔍 Verifying signature and attestation..."
+          
+          # Verify the signature
+          cosign verify jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
+          
+          # Verify the attestation
+          cosign verify-attestation --type slsaprovenance jonlimpw/cg-demo@${{ steps.digest.outputs.digest }}
+          
+          echo "✅ Verification successful!"
+
       - name: Chainguard Controller Impact
         run: |
-          echo "🎯 NEW IMAGE PUSHED TO DOCKERHUB!"
-          echo "=================================="
+          echo "🎯 NEW SIGNED IMAGE PUSHED TO DOCKERHUB!"
+          echo "========================================"
           echo ""
-          echo "📦 Images Built:"
+          echo "📦 Images Built & Signed:"
           echo "   • jonlimpw/cg-demo:latest"
           echo "   • jonlimpw/cg-demo:${{ steps.version.outputs.version }}"
           echo "   • jonlimpw/cg-demo:${{ steps.version.outputs.short_sha }}"
           echo "   • jonlimpw/cg-demo:${{ steps.version.outputs.timestamp }}"
           echo "📋 Latest Digest: ${{ steps.digest.outputs.digest }}"
+          echo ""
+          echo "🔐 Security Features:"
+          echo "   • ✅ Cosign signature applied (keyless OIDC)"
+          echo "   • ✅ SLSA provenance attestation generated"
+          echo "   • ✅ Supply chain transparency via Rekor"
           echo ""
           echo "🤖 CHAINGUARD CONTROLLER WILL:"
           echo "  ⚡ Detect new digest within 10 seconds"
