@@ -63,11 +63,12 @@ spec:
     metadata:
       labels:
         app: chainguard-controller
+        admission.datadoghq.com/enabled: "false" 
     spec:
       serviceAccountName: chainguard-controller
       containers:
       - name: manager
-        image: jonlimpw/chainguard-controller:latest
+        image: jonlimpw/secure-controller:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
