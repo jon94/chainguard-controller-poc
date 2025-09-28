@@ -69,6 +69,30 @@ type ImagePolicySpec struct {
 	// +kubebuilder:default=true
 	// +optional
 	EnforceLatestDigest *bool `json:"enforceLatestDigest,omitempty"`
+
+	// AttestationPolicy defines requirements for cryptographic attestations
+	// +optional
+	AttestationPolicy *AttestationPolicy `json:"attestationPolicy,omitempty"`
+}
+
+// AttestationPolicy defines the attestation verification requirements
+type AttestationPolicy struct {
+	// RequireAttestation when true, marks deployments as non-compliant if they lack valid attestations
+	// +kubebuilder:default=false
+	// +optional
+	RequireAttestation *bool `json:"requireAttestation,omitempty"`
+
+	// AllowedIssuers specifies the allowed OIDC issuers for attestation certificates
+	// +optional
+	AllowedIssuers []string `json:"allowedIssuers,omitempty"`
+
+	// RequiredTypes specifies the required attestation types (e.g., "slsaprovenance")
+	// +optional
+	RequiredTypes []string `json:"requiredTypes,omitempty"`
+
+	// MaxAge specifies the maximum age of attestations to accept (e.g., "24h")
+	// +optional
+	MaxAge *string `json:"maxAge,omitempty"`
 }
 
 // ImagePolicyStatus defines the observed state of ImagePolicy.
@@ -122,8 +146,42 @@ type DeploymentStatus struct {
 	// IsCompliant indicates if the deployment is using the latest digest
 	IsCompliant bool `json:"isCompliant"`
 
+	// HasValidAttestation indicates if the deployment's image has valid attestations
+	// +optional
+	HasValidAttestation *bool `json:"hasValidAttestation,omitempty"`
+
+	// AttestationDetails provides information about the attestation verification
+	// +optional
+	AttestationDetails *AttestationDetails `json:"attestationDetails,omitempty"`
+
 	// LastUpdated timestamp when this status was last updated
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+}
+
+// AttestationDetails provides information about attestation verification results
+type AttestationDetails struct {
+	// Verified indicates if the attestation was successfully verified
+	Verified bool `json:"verified"`
+
+	// AttestationType is the type of attestation found (e.g., "slsaprovenance")
+	// +optional
+	AttestationType string `json:"attestationType,omitempty"`
+
+	// Issuer is the OIDC issuer of the attestation certificate
+	// +optional
+	Issuer string `json:"issuer,omitempty"`
+
+	// RekorLogIndex is the Rekor transparency log index for this attestation
+	// +optional
+	RekorLogIndex *int64 `json:"rekorLogIndex,omitempty"`
+
+	// LastChecked timestamp when attestation was last verified
+	// +optional
+	LastChecked *metav1.Time `json:"lastChecked,omitempty"`
+
+	// Error message if attestation verification failed
+	// +optional
+	Error string `json:"error,omitempty"`
 }
 
 // +kubebuilder:object:root=true

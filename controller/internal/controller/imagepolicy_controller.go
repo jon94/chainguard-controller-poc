@@ -35,6 +35,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	securityv1 "github.com/jonlimpw/chainguard-controller/api/v1"
+	"github.com/jonlimpw/chainguard-controller/internal/rekor"
 )
 
 // DockerHubManifest represents the Docker Hub registry manifest response
@@ -54,8 +55,9 @@ type DockerHubToken struct {
 // ImagePolicyReconciler reconciles a ImagePolicy object
 type ImagePolicyReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme      *runtime.Scheme
+	Recorder    record.EventRecorder
+	RekorClient *rekor.Client
 }
 
 // +kubebuilder:rbac:groups=security.chainguard.dev,resources=imagepolicies,verbs=get;list;watch;create;update;patch;delete
@@ -131,7 +133,7 @@ func (r *ImagePolicyReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	for _, deployment := range deployments {
 		log.Info("Processing deployment", "deployment", deployment.Name, "namespace", deployment.Namespace, "enforceLatest", enforceLatest)
-		status := r.analyzeDeploymentCompliance(ctx, deployment, imagePolicy.Spec.Repository, latestDigest, enforceLatest)
+		status := r.analyzeDeploymentCompliance(ctx, deployment, imagePolicy.Spec.Repository, latestDigest, enforceLatest, imagePolicy.Spec.AttestationPolicy)
 		deploymentStatuses = append(deploymentStatuses, status)
 		log.Info("Deployment compliance status", "deployment", deployment.Name, "isCompliant", status.IsCompliant)
 		if status.IsCompliant {
@@ -377,7 +379,7 @@ func (r *ImagePolicyReconciler) deploymentUsesRepository(deployment appsv1.Deplo
 }
 
 // analyzeDeploymentCompliance analyzes if a deployment is compliant with the policy
-func (r *ImagePolicyReconciler) analyzeDeploymentCompliance(ctx context.Context, deployment appsv1.Deployment, repository, latestDigest string, enforceLatest bool) securityv1.DeploymentStatus {
+func (r *ImagePolicyReconciler) analyzeDeploymentCompliance(ctx context.Context, deployment appsv1.Deployment, repository, latestDigest string, enforceLatest bool, attestationPolicy *securityv1.AttestationPolicy) securityv1.DeploymentStatus {
 	log := logf.FromContext(ctx)
 	now := metav1.Now()
 	status := securityv1.DeploymentStatus{
@@ -432,7 +434,98 @@ func (r *ImagePolicyReconciler) analyzeDeploymentCompliance(ctx context.Context,
 		}
 	}
 
+	// Verify attestations if policy requires it
+	if attestationPolicy != nil && attestationPolicy.RequireAttestation != nil && *attestationPolicy.RequireAttestation {
+		var attestationResult *rekor.AttestationResult
+
+		// Check if we have a valid digest for attestation verification
+		if status.CurrentDigest == "tag-based" || status.CurrentDigest == "" {
+			// Tag-based images cannot be verified for attestations
+			attestationResult = &rekor.AttestationResult{
+				Verified: false,
+				Error:    "Cannot verify attestations for tag-based images - digest required",
+			}
+		} else {
+			// Verify attestation for digest-based images
+			attestationResult = r.verifyAttestation(ctx, status.CurrentDigest, attestationPolicy)
+		}
+
+		// Update status with attestation information
+		hasValidAttestation := attestationResult.Verified
+		status.HasValidAttestation = &hasValidAttestation
+
+		if attestationResult != nil {
+			status.AttestationDetails = &securityv1.AttestationDetails{
+				Verified:        attestationResult.Verified,
+				AttestationType: attestationResult.AttestationType,
+				Issuer:          attestationResult.Issuer,
+				LastChecked:     &now,
+				Error:           attestationResult.Error,
+			}
+
+			if attestationResult.LogIndex > 0 {
+				status.AttestationDetails.RekorLogIndex = &attestationResult.LogIndex
+			}
+		}
+
+		// Mark as non-compliant if attestation verification fails
+		if !attestationResult.Verified {
+			log.Info("Attestation verification failed",
+				"deployment", deployment.Name,
+				"namespace", deployment.Namespace,
+				"digest", status.CurrentDigest,
+				"error", attestationResult.Error)
+			status.IsCompliant = false
+		}
+	}
+
 	return status
+}
+
+// verifyAttestation verifies that an image digest has valid attestations in Rekor
+func (r *ImagePolicyReconciler) verifyAttestation(ctx context.Context, imageDigest string, policy *securityv1.AttestationPolicy) *rekor.AttestationResult {
+	log := logf.FromContext(ctx)
+
+	// Skip verification if no digest available
+	if imageDigest == "" {
+		return &rekor.AttestationResult{
+			Verified: false,
+			Error:    "no image digest available for verification",
+		}
+	}
+
+	// Skip verification if Rekor client not available
+	if r.RekorClient == nil {
+		log.Info("Rekor client not available, skipping attestation verification")
+		return &rekor.AttestationResult{
+			Verified: false,
+			Error:    "Rekor client not initialized",
+		}
+	}
+
+	// Prepare policy parameters
+	var allowedIssuers []string
+	var requiredTypes []string
+
+	if policy.AllowedIssuers != nil {
+		allowedIssuers = policy.AllowedIssuers
+	}
+
+	if policy.RequiredTypes != nil {
+		requiredTypes = policy.RequiredTypes
+	}
+
+	// Verify attestation via Rekor
+	result, err := r.RekorClient.VerifyAttestation(ctx, imageDigest, allowedIssuers, requiredTypes)
+	if err != nil {
+		log.Error(err, "Failed to verify attestation via Rekor", "digest", imageDigest)
+		return &rekor.AttestationResult{
+			Verified: false,
+			Error:    fmt.Sprintf("Rekor verification failed: %v", err),
+		}
+	}
+
+	return result
 }
 
 // hasAutomationEnabled checks if a deployment has the automation:true label

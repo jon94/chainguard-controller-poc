@@ -57,6 +57,32 @@ spec:
           spec:
             description: spec defines the desired state of ImagePolicy
             properties:
+              attestationPolicy:
+                description: AttestationPolicy defines requirements for cryptographic
+                  attestations
+                properties:
+                  allowedIssuers:
+                    description: AllowedIssuers specifies the allowed OIDC issuers
+                      for attestation certificates
+                    items:
+                      type: string
+                    type: array
+                  maxAge:
+                    description: MaxAge specifies the maximum age of attestations
+                      to accept (e.g., "24h")
+                    type: string
+                  requireAttestation:
+                    default: false
+                    description: RequireAttestation when true, marks deployments as
+                      non-compliant if they lack valid attestations
+                    type: boolean
+                  requiredTypes:
+                    description: RequiredTypes specifies the required attestation
+                      types (e.g., "slsaprovenance")
+                    items:
+                      type: string
+                    type: array
+                type: object
               checkIntervalSeconds:
                 default: 60
                 description: 'CheckIntervalSeconds defines how often to check for
@@ -267,10 +293,46 @@ spec:
                   description: DeploymentStatus tracks the compliance status of a
                     specific deployment
                   properties:
+                    attestationDetails:
+                      description: AttestationDetails provides information about the
+                        attestation verification
+                      properties:
+                        attestationType:
+                          description: AttestationType is the type of attestation
+                            found (e.g., "slsaprovenance")
+                          type: string
+                        error:
+                          description: Error message if attestation verification failed
+                          type: string
+                        issuer:
+                          description: Issuer is the OIDC issuer of the attestation
+                            certificate
+                          type: string
+                        lastChecked:
+                          description: LastChecked timestamp when attestation was
+                            last verified
+                          format: date-time
+                          type: string
+                        rekorLogIndex:
+                          description: RekorLogIndex is the Rekor transparency log
+                            index for this attestation
+                          format: int64
+                          type: integer
+                        verified:
+                          description: Verified indicates if the attestation was successfully
+                            verified
+                          type: boolean
+                      required:
+                      - verified
+                      type: object
                     currentDigest:
                       description: CurrentDigest is the digest currently used by the
                         deployment
                       type: string
+                    hasValidAttestation:
+                      description: HasValidAttestation indicates if the deployment's
+                        image has valid attestations
+                      type: boolean
                     isCompliant:
                       description: IsCompliant indicates if the deployment is using
                         the latest digest

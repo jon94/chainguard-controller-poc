@@ -1,0 +1,72 @@
+apiVersion: security.chainguard.dev/v1
+kind: ImagePolicy
+metadata:
+  name: enterprise-attestation-policy
+  namespace: demo
+spec:
+  repository: "jonlimpw/cg-demo"
+  checkIntervalSeconds: 60
+  enforceLatestDigest: true
+  attestationPolicy:
+    requireAttestation: true
+    allowedIssuers:
+      - "https://token.actions.githubusercontent.com"
+    requiredTypes:
+      - "slsaprovenance"
+    maxAge: "24h"
+  deploymentSelector:
+    matchLabels:
+      app: "cg-demo"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo
+  labels:
+    monitored: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-demo-with-attestation
+  namespace: demo
+  labels:
+    app: cg-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cg-demo
+  template:
+    metadata:
+      labels:
+        app: cg-demo
+    spec:
+      containers:
+      - name: demo-app
+        image: jonlimpw/cg-demo:latest  # Will be flagged as non-compliant (tag-based + no attestation verification yet)
+        ports:
+        - containerPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cg-demo-compliant
+  namespace: demo
+  labels:
+    app: cg-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cg-demo
+  template:
+    metadata:
+      labels:
+        app: cg-demo
+    spec:
+      containers:
+      - name: demo-app
+        image: jonlimpw/cg-demo@sha256:d1d6c7b78d59139833977f330416b960113f8a053b5cc5e5fddf6c8eef2c7778  # Digest-based with attestation
+        ports:
+        - containerPort: 8080

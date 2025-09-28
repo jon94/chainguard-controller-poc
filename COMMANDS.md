@@ -418,4 +418,47 @@ kubectl delete -f controller/config/samples/
 make undeploy
 ```
 
-This command reference provides everything needed to build, deploy, demo, and maintain the Chainguard Image Policy Controller MVP.
+## 🎯 Rekor Integration Demo Commands
+
+### Run Comprehensive Rekor Demo
+```bash
+# Complete demo showing Rekor attestation verification
+./scripts/demo-rekor-verification.sh
+```
+
+### Verify Real Rekor Entry
+```bash
+# Query actual Rekor transparency log entry
+./scripts/verify-real-rekor-entry.sh
+
+# Manual Rekor verification
+curl -s https://rekor.sigstore.dev/api/v1/log/entries/566466542 | jq '.'
+
+# Using rekor-cli (if installed)
+rekor-cli get --log-index 566466542
+```
+
+### Controller Logs Demo
+```bash
+# Watch controller attestation verification in real-time
+./scripts/demo-controller-logs.sh
+
+# Trigger controller reconciliation
+kubectl patch imagepolicy enterprise-attestation-policy -n demo --type='merge' -p '{"metadata":{"annotations":{"demo/trigger":"recon"}}}'
+```
+
+### Test Enterprise Attestation Policy
+```bash
+# Apply enterprise attestation policy
+kubectl apply -f controller/config/samples/enterprise-attestation-policy.yaml
+
+# Check attestation compliance status
+kubectl get imagepolicy enterprise-attestation-policy -n demo -o jsonpath='{.status.monitoredDeployments}' | jq '.'
+
+# View detailed attestation policy
+kubectl get imagepolicy enterprise-attestation-policy -n demo -o jsonpath='{.spec.attestationPolicy}' | jq '.'
+```
+
+---
+
+This command reference provides everything needed to build, deploy, demo, and maintain the Chainguard Image Policy Controller MVP with enterprise-grade Rekor attestation verification.

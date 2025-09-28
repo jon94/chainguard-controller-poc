@@ -37,6 +37,7 @@ import (
 
 	securityv1 "github.com/jonlimpw/chainguard-controller/api/v1"
 	"github.com/jonlimpw/chainguard-controller/internal/controller"
+	"github.com/jonlimpw/chainguard-controller/internal/rekor"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -178,10 +179,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize Rekor client for attestation verification
+	rekorClient, err := rekor.NewClient()
+	if err != nil {
+		setupLog.Error(err, "unable to create Rekor client")
+		// Don't exit - controller can still work without attestation verification
+		rekorClient = nil
+	} else {
+		setupLog.Info("Rekor client initialized successfully")
+	}
+
 	if err := (&controller.ImagePolicyReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("imagepolicy-controller"),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Recorder:    mgr.GetEventRecorderFor("imagepolicy-controller"),
+		RekorClient: rekorClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ImagePolicy")
 		os.Exit(1)
